@@ -23,6 +23,9 @@ female(noelle).
 female(jenny).
 female(maryann).
 female(ayla).
+female(brenda).
+female(krista).
+female(kaitlyn).
 
 male(michael).
 male(jerry).
@@ -45,6 +48,8 @@ male(jake).
 male(mikey).
 male(thomas).
 male(colton).
+male(ray).
+male(tony).
 
 child(charlotte, june).
 child(charlotte, susan).
@@ -74,7 +79,7 @@ child(louis, cindy).
 child(louis, kathie).
 child(louis, steven).
 child(marge, jerryS).
-child(wes, jerryS).
+child(marge,brenda).
 child(mary, jerry).
 child(mary, mike).
 child(james, jerry).
@@ -85,6 +90,9 @@ child(jerry, mandy).
 child(jerry, michael).
 child(cindy, mandy).
 child(cindy, michael).
+child(steven,krista).
+child(steven,tony).
+child(krista,kaitlyn).
 child(kathie, amy).
 child(mandy, emma).
 child(mandy, preston).
@@ -93,6 +101,7 @@ child(michael, isabella).
 child(michael, vinady).
 child(jerryS, briana).
 child(jerryS, melissa).
+child(brenda,ray).
 child(mike, rachel).
 child(joann,jenny).
 child(joann,mikey).
@@ -104,12 +113,10 @@ child(briana, noelle).
 child(briana, caleb).
 child(briana, jake).
 
-person(X) :- male(X).
-person(X) :- female(X).
-
-married(X,Y) :-
-	child(X,Z),
-	child(Y,Z),
+parents(X,Y):-
+	child(X,W),
+	child(Y,W),
+	X \== Y,
 	!.
 
 greatgrandmother(X,Y) :-
@@ -118,7 +125,7 @@ greatgrandmother(X,Y) :-
 	child(Z,Y),
 	female(X).
 
-greatgrandmother(X,Y) :-
+greatgrandfather(X,Y) :-
 	child(X,W),
 	child(W,Z),
 	child(Z,Y),
@@ -142,19 +149,36 @@ father(X,Y) :-
 	child(X,Y),
 	male(X).
 
+bothMomAndDad(X) :-
+	mother(Z,X),
+	father(W,X),
+	parents(W,Z).
+
 sister(X,Y) :-
+	bothMomAndDad(X),
 	mother(Z,X),
 	mother(Z,Y),
-	father(V,X),
-	father(V,Y),
 	female(X),
 	X \== Y.
 
+sister(X,Y) :-
+	\+ bothMomAndDad(X),
+	child(Z,X),
+	child(Z,Y),
+	female(X),
+	X \== Y.	
+
 brother(X,Y) :-
+	bothMomAndDad(X),
 	mother(Z,X),
 	mother(Z,Y),
-	father(V,X),
-	father(V,Y),
+	male(X),
+	X \== Y.
+
+brother(X,Y) :-
+	\+ bothMomAndDad(X),
+	child(Z,X),
+	child(Z,Y),
 	male(X),
 	X \== Y.
 
@@ -186,108 +210,70 @@ uncle(X,Y) :-
 	male(X),
 	Y \== Z.
 
-cousin(X,Y,1) 
+niece(X,Y) :-
+	uncle(Y,X),
+	female(X).
 
-cousin1(X,Y):-
+niece(X,Y) :-
+	aunt(Y,X),
+	female(X).
+
+nephew(X,Y) :-
+	uncle(Y,X),
+	male(X).
+
+nephew(X,Y) :-
+	aunt(Y,X),
+	male(X).	
+
+cousin(X,1,Y) :-
 	uncle(Z,X),
 	child(Z,Y).
 
-cousin1(X,Y):-
+cousin(X,1,Y):-
 	aunt(Z,X),
 	child(Z,Y).
 
-cousin1onceRem(X,Y) :-
-	mother(Z,X),
-	cousin1(Z,Y).
+cousin(X,2,Y) :-
+	cousinRemoved(X,1,1,up,Z),
+	child(Z,Y).	
 
-cousin1onceRem(X,Y) :-
-	father(Z,X),
-	cousin1(Z,Y).	
-
-cousin1onceRem(X,Y) :-
-	cousin1(X,Z),
+cousin(X,3,Y) :-
+	cousinRemoved(X,2,1,up,Z),
 	child(Z,Y).
 
-cousin1twiceRem(X,Y) :-
+cousinRemoved(X,1,1,up,Y) :-
+	mother(Z,X),
+	cousin(Z,1,Y).
+
+cousinRemoved(X,1,1,up,Y) :-
+	father(Z,X),
+	cousin(Z,1,Y).	
+
+cousinRemoved(X,1,1,down,Y) :-
+	cousin(X,1,Z),
+	child(Z,Y).
+
+cousinRemoved(X,1,2,up,Y) :-
 	grandmother(Z,X),
-	cousin1(Z,V),
+	cousin(Z,1,V),
 	child(V,Y).
 
-cousin2(X,Y) :-
-	cousin1onceRem(X,Z),
+cousinRemoved(X,2,1,down,Y) :-
+	cousin(X,2,Z),
 	child(Z,Y).
 
-cousin2onceRem(X,Y) :-
-	cousin2(X,Z),
+cousinRemoved(X,2,1,up,Y) :-
+	cousinRemoved(X,1,2,up,Z),
 	child(Z,Y).
 
-cousin2onceRem(X,Y) :-
-	cousin1twiceRem(X,Z),
-	child(Z,Y).
+all_cousins(Person,Degree,ListOfCousins):-
+	findall(Y,cousin(Person,Degree,Y),ListOfCousins).
 
-cousin3(X,Y) :-
-	cousin2onceRem(X,Z),
-	child(Z,Y).
-
-all_cousins(Person,Degree,ListOfCousins) :-
-	findall(Y,cousin1(X,Y),listOfCousin1).
-
-
-all_cousins(X,2,listOfCousins) :-
-	cousin2(X,Y),
-	listOfCousins([Y]).
-
-all_cousins(X,3,listOfCousins) :-
-	cousin3(X,Y),
-	listOfCousins([Y]).
-
-all_cousinsRemoved(X,1,1,up,listOfCousins) :-
-	cousin1onceRem(X,Y),
-	child(Z,X),
-	cousin1(Z,Y),
-	listOfCousins([Y]).
-
-all_cousinsRemoved(X,1,1,down,listOfCousins) :-
-	cousin1onceRem(X,Y),
-	child(Z,Y),
-	cousin1(X,Z),
-	listOfCousins([Y]).	
-
-all_cousinsRemoved(X,2,1,up,listOfCousins) :-
-	cousin2onceRem(X,Y),
-	child(Z,X),
-	cousin2(Z,Y),
-	listOfCousins([Y]).
-
-all_cousinsRemoved(X,2,1,down,listOfCousins) :-
-	cousin2onceRem(X,Y),
-	child(Z,Y),
-	cousin2(X,Z),
-	listOfCousins([Y]).	
-
-all_cousinsRemoved(X,2,2,up,listOfCousins) :-
-	cousin2twiceRem(X,Y),
-	child(Z,Y),
-	cousin2(X,Z),
-	listOfCousins([Y]).	
-
-all_cousinsRemoved(X,2,2,down,listOfCousins) :-
-	cousin2twiceRem(X,Y),
-	child(Z,Y),
-	cousin2(X,Z),
-	listOfCousins([Y]).
+all_cousinsRemoved(Person,Degree,RemovedNumber,RemovedDirection,ListOfCousins) :-
+	findall(Y,cousinRemoved(Person,Degree,RemovedNumber,RemovedDirection,Y),ListOfCousins).
 
 isSingleChild(X) :-
 	\+ brother(X,_),
 	\+ sister(X,_),
 	!.
-
-add(X,[H|T],[H|R]) :-
-	add(X,R,T).
-add(X,[],[X]).
-
-printList([]):- write('**End of list**'), nl.
-printList([H|T]) :-
-	write(H), nl,
-	printList(T).
-
